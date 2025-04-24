@@ -4,28 +4,44 @@ from constants import *
 class Deck:
     def __init__(self):
         self.cards = []
-        self.discarded = []  # карти, що вже були роздані
+        self.discarded = []
         self.build()
-        self.initial_count = 52  # Початкова кількість карт
+        self.shuffle()
 
     def build(self):
+        """Створює нову колоду з 52 карт"""
         self.cards = [(suit, value) for suit in SUITS for value in RANKS]
-        self.initial_count = len(self.cards)
+        self.discarded = []
 
     def shuffle(self):
+        """Перемішує колоду"""
         random.shuffle(self.cards)
 
     def deal(self):
-        if len(self.cards) < 1:
+        """Роздає одну карту з колоди, автоматично перемішує при необхідності"""
+        if len(self.cards) == 0:
+            # Якщо карти закінчились, перемішуємо відкинуті карти
+            self.cards = self.discarded.copy()
+            self.discarded = []
+            self.shuffle()
+            print("Колода перемішана заново!")
+        
+        if len(self.cards) == 0:
+            # Якщо все ще немає карт (не було відкинутих)
             self.build()
             self.shuffle()
-        self.initial_count = len(self.cards)  # Оновлюємо лічильник
-        return self.cards.pop()
+            print("Створено нову колоду!")
+        
+        card = self.cards.pop()
+        self.discarded.append(card)
+        return card
+
     def remaining_cards(self):
-      #Повертає кількість карт, що залишилися в колоді
+        """Повертає кількість карт, що залишились у колоді"""
         return len(self.cards)
+
     def reset(self):
-        #Повністю скидає колоду (новий початок гри)
+        """Повністю скидає колоду (новий початок гри)"""
         self.build()
         self.shuffle()
 

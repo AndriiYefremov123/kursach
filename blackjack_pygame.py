@@ -199,21 +199,34 @@ class Play:
         self.dealer.clear()
         self.player.clear()
 
+        # Перевіряємо, чи достатньо карт для роздачі
+        if self.deck.remaining_cards() < 15:  
+            self.deck.reset()
+            print("Колода перемішана через недостатню кількість карт")
+
         for i in range(2):
             # Анімація взяття карти для дилера
+            card = self.deck.deal()
+            if card is None:
+                print("Помилка: не вдалося видати карту")
+                return
             self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 150, is_dealer=True)
-            self.dealer.add_card(self.deck.deal())
+            self.dealer.add_card(card)
 
             # Анімація взяття карти для гравця
+            card = self.deck.deal()
+            if card is None:
+                print("Помилка: не вдалося видати карту")
+                return
             self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
-            self.player.add_card(self.deck.deal())
+            self.player.add_card(card)
 
         self.player_card_count = 2
         self.game_state = "playing"
 
         # Set up flip animation for dealer's second card
         if len(self.dealer.card_img) > 1:
-            card_name = self.dealer.card_img[1]  # Назва карти, що випала дилеру
+            card_name = self.dealer.card_img[1]
             final_card_path = f'img/{card_name}.png'
             self.dealer_flip_animation = CardFlipAnimation(x=400, y=150, final_card_image_path=final_card_path, scale=1)
 
@@ -285,14 +298,23 @@ class Play:
     def hit(self):
         if self.game_state != "playing":
             return
-        i = 1
-        self.animate_card_draw(DECK_X, DECK_Y, 500 + i, 450, is_dealer=False)
-        self.player.add_card(self.deck.deal())
+        
+        # Перевіряємо, чи є карти в колоді
+        if self.deck.remaining_cards() == 0:
+            self.deck.reset()
+            print("Колода перемішана через недостатню кількість карт")
+        
+        card = self.deck.deal()
+        if card is None:
+            print("Помилка: не вдалося видати карту")
+            return
+        
+        i = len(self.player.card_img)
+        self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
+        self.player.add_card(card)
         self.player_card_count += 1
-        i +=1
         self.player.calc_hand()
         
-
         if self.player.value > 21:
             if self.dealer_flip_animation:
                 self.dealer_flip_animation.start_animation()
@@ -303,12 +325,8 @@ class Play:
                 pygame.display.update()
             self.game_state = "ended"
             self.show_result("You Busted!", red)
-
-            
-            
         elif self.player.value == 21:
-            self.update_display()
-            play_blackjack.stand()
+            self.stand()
         else:
             self.update_display()
 
