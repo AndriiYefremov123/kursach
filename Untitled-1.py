@@ -36,12 +36,12 @@ class Card(pygame.sprite.Sprite):
 
         # Завантаження кадрів анімації перевороту
         for i in range(2):  # Припустимо, що у вас є 10 кадрів анімації
-            img = pygame.image.load(f'D:\\study\\інж прог заб\\курсач\\Card Flip\\{i}.png')
+            img = pygame.image.load(f'D:\\study\\інж прог заб\\курсач\\Playing Cards\\HA.png')
             img = pygame.transform.scale(img, (img.get_width() * scale, img.get_height() * scale))
             self.animation_list.append(img)
 
         # Завантаження основного зображення карти
-        self.front_image = pygame.image.load(f'D:\\study\\інж прог заб\\курсач\\Playing Cards\\card-{self.card_type}.png')
+        self.front_image = pygame.image.load(f'D:\\study\\інж прог заб\\курсач\\Playing Cards\\BG.png')
         self.front_image = pygame.transform.scale(self.front_image, (self.front_image.get_width() * scale, self.front_image.get_height() * scale))
 
         self.back_image = self.animation_list[-1]  # Останній кадр анімації — це зворот карти
@@ -86,8 +86,8 @@ class Card(pygame.sprite.Sprite):
                         self.image = self.back_image
                 else:
                     if self.frame_index > 0:
-                        self.frame_index -= 1
                         self.image = self.animation_list[self.frame_index]
+                        self.frame_index -= 1
                     else:
                         self.animating = False
                         self.flipped = False
