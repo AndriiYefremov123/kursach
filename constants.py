@@ -9,6 +9,7 @@ black = (0,0,0)
 red = (255,0,0)
 grey = (220,220,220)
 green = (0, 200, 0)
+
 light_slat = (119,136,153)
 dark_slat = (47, 79, 79)
 dark_red = (255, 0, 0)
@@ -24,3 +25,7 @@ CARD_SIZE = (72, 96)
 CARD_CENTER = (36, 48)
 CARD_BACK_SIZE = (72, 96)
 CARD_BACK_CENTER = (36, 48)
+DECK_X = 800  # X position of the deck stack
+DECK_Y = 50  # Y position of the deck stack
+DECK_WIDTH = 100  # Width of the deck stack image
+DECK_HEIGHT = 150 # Height of the deck stack image
