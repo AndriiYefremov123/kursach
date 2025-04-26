@@ -5,43 +5,44 @@ class Deck:
     def __init__(self):
         self.cards = []
         self.discarded = []
+        self.num_decks = 2
         self.build()
         self.shuffle()
 
     def build(self):
-        """Створює нову колоду з 52 карт"""
-        self.cards = [(suit, value) for suit in SUITS for value in RANKS]
-        self.discarded = []
+        #Створює нову колоду з 52 карт
+        self.cards = []
+        for i in range(self.num_decks):
+            self.cards.extend([(suit, value) for suit in SUITS for value in RANKS])
+        self.initial_count = len(self.cards)
 
     def shuffle(self):
-        """Перемішує колоду"""
+        #Перемішує колоду
         random.shuffle(self.cards)
 
     def deal(self):
-        """Роздає одну карту з колоди, автоматично перемішує при необхідності"""
+        #Роздає одну карту з колоди, автоматично перемішує при необхідності
         if len(self.cards) == 0:
             # Якщо карти закінчились, перемішуємо відкинуті карти
             self.cards = self.discarded.copy()
             self.discarded = []
             self.shuffle()
-            print("Колода перемішана заново!")
         
         if len(self.cards) == 0:
             # Якщо все ще немає карт (не було відкинутих)
             self.build()
             self.shuffle()
-            print("Створено нову колоду!")
         
         card = self.cards.pop()
         self.discarded.append(card)
         return card
 
     def remaining_cards(self):
-        """Повертає кількість карт, що залишились у колоді"""
+        #Повертає кількість карт, що залишились у колоді
         return len(self.cards)
 
     def reset(self):
-        """Повністю скидає колоду (новий початок гри)"""
+        #Повністю скидає колоду (новий початок гри)
         self.build()
         self.shuffle()
 
@@ -73,7 +74,7 @@ class Hand:
             self.value -= 10
             aces -= 1
     def clear(self):
-        """Очищає руку"""
+        #Очищає руку
         self.cards = []
         self.card_img = []
         self.value = 0

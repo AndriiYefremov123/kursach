@@ -1,7 +1,9 @@
 import pygame
 import sys
 import time
+import random
 from constants import *
+from card_animation import *
 from blackjack_deck import *
 
 pygame.init()
@@ -11,74 +13,7 @@ pygame.display.set_caption('BlackJack')
 FPS = 120
 
 
-class CardFlipAnimation:
-    def __init__(self, x, y, final_card_image_path, scale=1):
-        self.x = x
-        self.y = y
-        self.scale = scale
-        self.final_card_image = pygame.image.load(final_card_image_path).convert_alpha()
-        self.final_card_image = pygame.transform.scale(self.final_card_image, 
-                                                     (int(self.final_card_image.get_width() * scale), 
-                                                      int(self.final_card_image.get_height() * scale)))
-        
-        # Завантаження кадрів анімації
-        self.animation_frames = []
-        for i in range(2):  # Припустимо, 10 кадрів анімації
-            try:
-                frame_path = f'Card Flip/{i}.png'  # Приклад: flip_0.png, flip_1.png, ...
-                img = pygame.image.load(frame_path).convert_alpha()
-                img = pygame.transform.scale(img, (int(img.get_width() * scale), 
-                                                 int(img.get_height() * scale)))
-                self.animation_frames.append(img)
-            except:
-                print(f"Не вдалося завантажити кадр анімації: {frame_path}")
-                continue
-        
-        if not self.animation_frames:
-            # Якщо немає кадрів анімації, створюємо просту анімацію
-            back_img = pygame.image.load('img/back.png').convert_alpha()
-            back_img = pygame.transform.scale(back_img, 
-                                           (int(back_img.get_width() * scale), 
-                                            int(back_img.get_height() * scale)))
-            self.animation_frames = [back_img, self.final_card_image]
-        
-        self.current_frame = 0
-        self.animation_speed = 3  # Чим менше, тим швидше
-        self.animation_counter = 0
-        self.is_animating = False
-        self.animation_complete = False
 
-    def start_animation(self):
-        if not self.is_animating and not self.animation_complete:
-            self.is_animating = True
-            self.current_frame = 0
-            self.animation_counter = 0
-            self.animation_complete = False
-
-    def update(self):
-        if self.is_animating:
-            self.animation_counter += 1
-            if self.animation_counter >= self.animation_speed:
-                self.animation_counter = 0
-                self.current_frame += 1
-                
-                if self.current_frame >= len(self.animation_frames):
-                    self.is_animating = False
-                    self.animation_complete = True
-                else:
-                    # Плавний перехід між кадрами
-                    pass
-
-    def draw(self, screen):
-        if self.animation_complete:
-            # Після завершення анімації показуємо фінальну карту
-            screen.blit(self.final_card_image, (self.x, self.y))
-        elif self.is_animating:
-            # Під час анімації показуємо поточний кадр
-            screen.blit(self.animation_frames[self.current_frame], (self.x, self.y))
-        else:
-            # До початку анімації показуємо зворотню сторону карти
-            screen.blit(self.animation_frames[0], (self.x, self.y))
 def clear_text_area(x, y, width=200, height=50):
     pygame.draw.rect(gameDisplay, bg_colour, (x - width//2, y - height//2, width, height))
 
@@ -128,16 +63,17 @@ class Play:
         screen.blit(text_surf, text_rect)
 
     def reset_game(self):
+        self.dealer_flip_animation = None
+        self.game_state = "waiting"  # waiting, playing, ended
+        if self.deck.remaining_cards() < 20:
+            self.deck.reset()
         self.deck = Deck()
         self.dealer = Hand()
         self.player = Hand()
         self.deck.shuffle()
         self.player_card_count = 0
-        self.game_state = "waiting"  # waiting, playing, ended
-        if self.deck.remaining_cards() < 15:
-            self.deck.reset()
         self.update_display()
-        self.dealer_flip_animation = None
+        
 
     def update_display(self, show_dealer=False):
         gameDisplay.fill(bg_colour)
@@ -198,17 +134,15 @@ class Play:
 
         self.dealer.clear()
         self.player.clear()
-
+        self.dealer_flip_animation = None
         # Перевіряємо, чи достатньо карт для роздачі
         if self.deck.remaining_cards() < 15:  
             self.deck.reset()
-            print("Колода перемішана через недостатню кількість карт")
 
         for i in range(2):
             # Анімація взяття карти для дилера
             card = self.deck.deal()
             if card is None:
-                print("Помилка: не вдалося видати карту")
                 return
             self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 150, is_dealer=True)
             self.dealer.add_card(card)
@@ -216,7 +150,6 @@ class Play:
             # Анімація взяття карти для гравця
             card = self.deck.deal()
             if card is None:
-                print("Помилка: не вдалося видати карту")
                 return
             self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
             self.player.add_card(card)
@@ -302,11 +235,9 @@ class Play:
         # Перевіряємо, чи є карти в колоді
         if self.deck.remaining_cards() == 0:
             self.deck.reset()
-            print("Колода перемішана через недостатню кількість карт")
         
         card = self.deck.deal()
         if card is None:
-            print("Помилка: не вдалося видати карту")
             return
         
         i = len(self.player.card_img)
