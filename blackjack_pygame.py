@@ -83,12 +83,12 @@ class Play:
         self.draw_deck_stack(gameDisplay)
 
 
-        game_texts("Dealer's hand:", 500, 90)
+        game_texts("Рука дилера:", 500, 90)
         if show_dealer:
             for i, card in enumerate(self.dealer.card_img):
                 if i == 1 and self.dealer_flip_animation:  # Друга карта дилера
                     self.dealer_flip_animation.draw(gameDisplay)
-                    game_texts(f"Dealer's total: {self.dealer.value}", 500, 120)
+                    game_texts(f"Рахунок дилера: {self.dealer.value}", 500, 120)
                 else:
                     card_img = pygame.image.load(f'img/{card}.png').convert_alpha()
                     gameDisplay.blit(card_img, (300 + i * 100, 150))
@@ -108,7 +108,7 @@ class Play:
 
 
         # Player's cards
-        game_texts("Your hand:", 500, 400)
+        game_texts("Твоя рука:", 500, 400)
         for i, card in enumerate(self.player.card_img):
             card_img = pygame.image.load(f'img/{card}.png').convert()
             gameDisplay.blit(card_img, (300 + i * 100, 450))
@@ -116,15 +116,15 @@ class Play:
         # Player's total
         self.player.calc_hand()
         clear_text_area(500, 650)
-        game_texts(f"Your total: {self.player.value}", 500, 650, 
+        game_texts(f"Твій рахунок: {self.player.value}", 500, 650, 
                   green if self.player.value == 21 else red if self.player.value > 21 else black)
 
         # Buttons
-        button("Deal", 30, 100, 150, 50, light_slat, dark_slat)
+        button("Роздати", 30, 100, 150, 50, light_slat, dark_slat)
         if self.game_state == "playing":
-            button("Hit", 30, 200, 150, 50, light_slat, dark_slat)
-            button("Stand", 30, 300, 150, 50, light_slat, dark_slat)
-        button("EXIT", 30, 500, 150, 50, light_slat, dark_red)
+            button("Додати карту", 30, 200, 150, 50, light_slat, dark_slat)
+            button("Зупинитися", 30, 300, 150, 50, light_slat, dark_slat)
+        button("Вихід", 30, 500, 150, 50, light_slat, dark_red)
 
         pygame.display.update()
 
@@ -189,7 +189,7 @@ class Play:
                     self.update_display()
                     pygame.time.delay(10)
                     pygame.display.update()
-                message, color = "Both with BlackJack!", grey
+                message, color = "Блекджек у обох!", grey
             elif self.player.value == 21:
                 if self.dealer_flip_animation:
                     self.dealer_flip_animation.start_animation()
@@ -198,7 +198,7 @@ class Play:
                     self.update_display()
                     pygame.time.delay(10)
                     pygame.display.update()
-                message, color = "You got BlackJack!", green
+                message, color = "У тебе блекджек!", green
             else:
                 if self.dealer_flip_animation:
                     self.dealer_flip_animation.start_animation()
@@ -207,7 +207,7 @@ class Play:
                     self.update_display()
                     pygame.time.delay(10)
                     pygame.display.update()
-                message, color = "Dealer has BlackJack!", red
+                message, color = "У дилера блекджек!", red
             
             self.show_result(message, color)
 
@@ -258,7 +258,7 @@ class Play:
                 pygame.time.delay(10)
                 pygame.display.update()
             self.game_state = "ended"
-            self.show_result("You Busted!", red)
+            self.show_result("Ти перебрав!", red)
         elif self.player.value == 21:
             self.stand()
         else:
@@ -283,9 +283,9 @@ class Play:
         
         # Dealer draws cards
         self.dealer.calc_hand()
+        i = 1
         while self.dealer.value < 17 and len(self.dealer.card_img) < 5:
-            i = 1
-            self.animate_card_draw(DECK_X, DECK_Y, 500 + i * 100, 150, is_dealer=True)
+            self.animate_card_draw(DECK_X, DECK_Y, 400 + i * 100, 150, is_dealer=True)
             pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(self.deck.deal())
             self.dealer.calc_hand()
@@ -297,16 +297,14 @@ class Play:
         self.dealer.calc_hand()
         self.player.calc_hand()
         
-        if self.player.value > 21:
-            result, color = "You Busted!", red
-        elif self.dealer.value > 21:
-            result, color = "Dealer Busted! You Win!", green
+        if self.dealer.value > 21:
+            result, color = "Дилер перебрав! Ти переміг!", green
         elif self.player.value > self.dealer.value:
-            result, color = "You Win!", green
+            result, color = "Ти переміг!", green
         elif self.player.value < self.dealer.value:
-            result, color = "Dealer Wins!", red
+            result, color = "Дилер переміг!", red
         else:
-            result, color = "It's a Tie!", grey
+            result, color = "Це нічия!", grey
         
         self.show_result(result, color)
 
@@ -315,13 +313,12 @@ class Play:
         self.update_display(show_dealer=True)
 
         # Відображаємо повідомлення про результат
-        game_finish(message, 550, 315, color)
+        game_finish(message, 605, 325, color)
 
 
         pygame.display.update()
         time.sleep(2)  # Затримка для читання результату
 
-        # Після затримки НЕ оновлюємо екран знову, щоб карти залишилися
 
     def exit(self):
         pygame.quit()
