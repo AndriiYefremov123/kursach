@@ -11,7 +11,7 @@ clock = pygame.time.Clock()
 gameDisplay = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('BlackJack')
 FPS = 120
-
+draw_sound = pygame.mixer.Sound("sounds/card-sounds-35956.mp3")
 
 
 def clear_text_area(x, y, width=200, height=50):
@@ -145,6 +145,7 @@ class Play:
             if card is None:
                 return
             self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 150, is_dealer=True)
+            pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(card)
 
             # Анімація взяття карти для гравця
@@ -152,6 +153,7 @@ class Play:
             if card is None:
                 return
             self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
+            pygame.mixer.Sound.play(draw_sound)
             self.player.add_card(card)
 
         self.player_card_count = 2
@@ -242,6 +244,7 @@ class Play:
         
         i = len(self.player.card_img)
         self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
+        pygame.mixer.Sound.play(draw_sound)
         self.player.add_card(card)
         self.player_card_count += 1
         self.player.calc_hand()
@@ -283,6 +286,7 @@ class Play:
         while self.dealer.value < 17 and len(self.dealer.card_img) < 5:
             i = 1
             self.animate_card_draw(DECK_X, DECK_Y, 500 + i * 100, 150, is_dealer=True)
+            pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(self.deck.deal())
             self.dealer.calc_hand()
             self.update_display()
