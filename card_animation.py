@@ -30,7 +30,7 @@ class CardFlipAnimation:
             self.animation_frames = [back_img, self.final_card_image]
         
         self.current_frame = 0
-        self.animation_speed = 3  # Чим менше, тим швидше
+        self.animation_speed = 5  # Чим менше, тим швидше
         self.animation_counter = 0
         self.is_animating = False
         self.animation_complete = False

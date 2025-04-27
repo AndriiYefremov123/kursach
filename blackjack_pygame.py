@@ -12,6 +12,7 @@ gameDisplay = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('BlackJack')
 FPS = 120
 draw_sound = pygame.mixer.Sound("sounds/card-sounds-35956.mp3")
+flip_sound = pygame.mixer.Sound("sounds/flipcard-91468.mp3")
 
 
 def clear_text_area(x, y, width=200, height=50):
@@ -163,6 +164,7 @@ class Play:
         if len(self.dealer.card_img) > 1:
             card_name = self.dealer.card_img[1]
             final_card_path = f'img/{card_name}.png'
+
             self.dealer_flip_animation = CardFlipAnimation(x=400, y=150, final_card_image_path=final_card_path, scale=1)
 
         self.check_blackjack()
@@ -183,6 +185,7 @@ class Play:
             self.game_state = "ended"
             if self.player.value == 21 and self.dealer.value == 21:
                 if self.dealer_flip_animation:
+                    pygame.mixer.Sound.play(flip_sound)
                     self.dealer_flip_animation.start_animation()
                 while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
                     self.dealer_flip_animation.update()
@@ -192,6 +195,7 @@ class Play:
                 message, color = "Блекджек у обох!", grey
             elif self.player.value == 21:
                 if self.dealer_flip_animation:
+                    pygame.mixer.Sound.play(flip_sound)
                     self.dealer_flip_animation.start_animation()
                 while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
                     self.dealer_flip_animation.update()
@@ -201,6 +205,7 @@ class Play:
                 message, color = "У тебе блекджек!", green
             else:
                 if self.dealer_flip_animation:
+                    pygame.mixer.Sound.play(flip_sound)
                     self.dealer_flip_animation.start_animation()
                 while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
                     self.dealer_flip_animation.update()
@@ -251,7 +256,9 @@ class Play:
         
         if self.player.value > 21:
             if self.dealer_flip_animation:
+                pygame.mixer.Sound.play(flip_sound)
                 self.dealer_flip_animation.start_animation()
+
             while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
                 self.dealer_flip_animation.update()
                 self.update_display()
@@ -272,6 +279,7 @@ class Play:
         
         # Запускаємо анімацію перевороту
         if self.dealer_flip_animation:
+            pygame.mixer.Sound.play(flip_sound)
             self.dealer_flip_animation.start_animation()
         
         # Оновлюємо екран під час анімації
