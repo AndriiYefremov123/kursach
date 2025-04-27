@@ -47,10 +47,11 @@ class Deck:
         self.shuffle()
 
 class Hand:
-    def __init__(self):
-        self.cards = []
+    def __init__(self, initial_cards=None, bet=0):
+        self.cards = initial_cards if initial_cards else []
         self.card_img = []
         self.value = 0
+        self.bet = bet
 
     def add_card(self, card):
         self.cards.append(card)

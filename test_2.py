@@ -73,14 +73,11 @@ class Play:
         if not self.can_split():
             return False
 
-        # Знімаємо додаткову ставку
-        self.balance -= self.current_bet
-        self.current_bet += self.current_bet
-        # Створюємо дві нові руки
-        self.split_hands = [
-            Hand(),
-            Hand()
-        ]
+        # Зберігаємо початкову ставку
+        original_bet = self.current_bet
+
+        # Створюємо дві нові руки з окремими ставками
+        self.split_hands = [Hand(bet=original_bet), Hand(bet=original_bet)]
 
         # Розподіляємо карти
         card1 = self.player.cards.pop()
@@ -89,13 +86,16 @@ class Play:
         self.split_hands[0].add_card(card1)
         self.split_hands[1].add_card(card2)
 
-        # Додаємо нові карти до кожної руки
+        # Додаємо по одній новій карті кожній руці
         for hand in self.split_hands:
             card = self.deck.deal()
             hand.add_card(card)
-            hand.calc_hand()  # Обчислюємо значення руки
-    
+            hand.calc_hand()
+
+        # Віднімаємо ще одну ставку з балансу
+        self.balance -= original_bet
         self.active_hand_index = 0
+
         return True
     def can_double_down(self):
         return len(self.player.card_img) == 2 and self.balance >= self.current_bet
@@ -151,6 +151,8 @@ class Play:
             self.deck.reset()
         self.dealer = Hand()
         self.player = Hand()
+        self.split_hands = []        # Очистити розділені руки
+        self.active_hand_index = 0   # Скинути індекс активної руки
         self.deck.shuffle()
         self.player_card_count = 0
         self.current_bet = 0
@@ -191,11 +193,20 @@ class Play:
         if self.split_hands:
             for i, hand in enumerate(self.split_hands):
                 y_offset = 450 + i * 250
-                game_texts(f"Твоя рука {i+1}:", 500, y_offset - 30)
+                
+                if self.game_state == "ended":
+                    result = self.get_hand_result(hand)
+                    status_text = f" ({result})"
+                else:
+                    status_text = ""
+            
+                # Відображаємо руку зі ставкою та результатом
+                game_texts(f"Рука {i+1} (${hand.bet}){status_text}:", 500, y_offset - 30)
                 for j, card in enumerate(hand.card_img):
                     card_img = pygame.image.load(f'img/{card}.png').convert()
                     gameDisplay.blit(card_img, (300 + j * 100, y_offset))
-
+                if i == self.active_hand_index and self.game_state == "playing":
+                    pygame.draw.rect(gameDisplay, (255, 255, 0), (290 , y_offset-5, 220 + j * 100, 160), 2)
                 # Відображаємо значення руки
                 hand.calc_hand()
                 game_texts(f"Твій рахунок: {hand.value}", 500, y_offset + 170)
@@ -228,10 +239,12 @@ class Play:
             button("Додати карту", 40, 450, 150, 50, light_slat, dark_slat)
             button("Зупинитися", 40, 550, 150, 50, light_slat, dark_slat)
             if self.can_double_down():
-                button("Double", 40, 650, 150, 40, light_slat, dark_slat)
+                button("Подвоїти", 40, 650, 150, 40, light_slat, dark_slat)
             
             if self.can_split():
-                button("Split", 40, 750, 150, 40, light_slat, dark_slat)
+                button("Розділити", 40, 750, 150, 40, light_slat, dark_slat)
+            if self.split_hands:
+                button("Переключити руку", 40, 260, 200, 30, light_slat, dark_slat)
         button("Вихід", 40, 850, 150, 50, light_slat, dark_red)
 
         pygame.display.update()
@@ -266,7 +279,7 @@ class Play:
                 return
             self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
             pygame.mixer.Sound.play(draw_sound)
-            self.player.add_card(card)
+            self.player.add_card(('S','3'))
 
         self.player_card_count = 2
         self.game_state = "playing"
@@ -401,86 +414,150 @@ class Play:
     def hit(self):
         if self.game_state != "playing":
             return
-        
-        # Перевіряємо, чи є карти в колоді
-        if self.deck.remaining_cards() == 0:
-            self.deck.reset()
-        
-        card = self.deck.deal()
-        if card is None:
-            return
-        
-        i = len(self.player.card_img)
-        self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
-        pygame.mixer.Sound.play(draw_sound)
-        self.player.add_card(card)
-        self.player_card_count += 1
-        self.player.calc_hand()
-        # Перевірка чи перебрав гравець
-        if self.player.value > 21:
-            if self.dealer_flip_animation:
-                pygame.mixer.Sound.play(flip_sound)
-                self.dealer_flip_animation.start_animation()
 
-            while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
-                self.dealer_flip_animation.update()
-                self.update_display()
-                pygame.time.delay(10)
-                pygame.display.update()
-            self.game_state = "ended"
-            self.show_result("Ти перебрав!", red)
-        elif self.player.value == 21:
-            self.stand()
+        if self.split_hands:
+            # Логіка для розділених рук
+            current_hand = self.split_hands[self.active_hand_index]
+
+            # Перевіряємо наявність карт у колоді
+            if self.deck.remaining_cards() == 0:
+                self.deck.reset()
+
+            card = self.deck.deal()
+            if card is None:
+                return
+
+            # Анімація взяття карти
+            i = len(current_hand.card_img)
+            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450 + self.active_hand_index * 250, is_dealer=False)
+            pygame.mixer.Sound.play(draw_sound)
+
+            # Додаємо карту до поточної руки
+            current_hand.add_card(card)
+            current_hand.calc_hand()
+
+            # Перевірка на перебір
+            if current_hand.value > 21:
+                if len(self.split_hands) > self.active_hand_index + 1:
+                    # Переходимо до наступної руки
+                    self.active_hand_index += 1
+                else:
+                    # Всі руки завершено
+                    self.stand()
+            elif current_hand.value == 21:
+                # Автоматично зупиняємося на 21
+                if len(self.split_hands) > self.active_hand_index + 1:
+                    self.active_hand_index += 1
+                else:
+                    self.stand()
         else:
-            self.update_display()
+            # Звичайна логіка без розділення
+            if self.deck.remaining_cards() == 0:
+                self.deck.reset()
+
+            card = self.deck.deal()
+            if card is None:
+                return
+
+            i = len(self.player.card_img)
+            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
+            pygame.mixer.Sound.play(draw_sound)
+            self.player.add_card(card)
+            self.player.calc_hand()
+
+            if self.player.value > 21:
+                self.game_state = "ended"
+                self.show_result("Ти перебрав!", red)
+            elif self.player.value == 21:
+                self.stand()
+
+        self.update_display()
+
+    def change_hand(self):
+
+        self.active_hand_index += 1
+
+    def get_hand_result(self, hand):
+        hand.calc_hand()
+        self.dealer.calc_hand()
+        
+        if hand.value > 21:
+            return "Програш (перебір)"
+        elif self.dealer.value > 21:
+            return "Виграш (дилер перебрав)"
+        elif hand.value > self.dealer.value:
+            return "Виграш"
+        elif hand.value == self.dealer.value:
+            return "Нічия"
+        else:
+            return "Програш"
+
     # Функція зупинки роздачі
     def stand(self):
         if self.game_state != "playing":
             return
-            
+
+        if self.split_hands:
+            # Для розділених рук перевіряємо, чи є ще руки
+            if self.active_hand_index < len(self.split_hands) - 1:
+                self.active_hand_index += 1
+                return
+
+        # Якщо всі руки завершено або це звичайна гра
         self.game_state = "ended"
-        
-        # Запускаємо анімацію перевороту
+
+        # Перевертаємо карти дилера
         if self.dealer_flip_animation:
             pygame.mixer.Sound.play(flip_sound)
             self.dealer_flip_animation.start_animation()
-        
+
         # Оновлюємо екран під час анімації
         while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
             self.dealer_flip_animation.update()
             self.update_display()
             pygame.time.delay(10)
             pygame.display.update()
-        
-        # Анімація роздачі карт Дилеру
+
+        # Дилер добирає карти
         self.dealer.calc_hand()
-        i = 1
-        while self.dealer.value < 17 and len(self.dealer.card_img) < 5:
-            self.animate_card_draw(DECK_X, DECK_Y, 400 + i * 100, 150, is_dealer=True)
+        i = len(self.dealer.card_img)
+        while self.dealer.value < 17 :
+            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 150, is_dealer=True)
             pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(self.deck.deal())
             self.dealer.calc_hand()
-            self.update_display()
             i += 1
             pygame.time.delay(10)
-        
-        # Кінцевий результат 
-        self.dealer.calc_hand()
-        self.player.calc_hand()
-        
-        if self.dealer.value > 21:
-            result, color = "Дилер перебрав! Ти переміг!", green
-            self.win_bet(self.current_bet)
-        elif self.player.value > self.dealer.value:
-            result, color = "Ти переміг!", green
-            self.win_bet(self.current_bet)
-        elif self.player.value < self.dealer.value:
-            result, color = "Дилер переміг!", red
+
+        # Визначаємо результати
+        dealer_value = self.dealer.value
+
+        if self.split_hands:
+            # Обробка розділених рук
+            for i, hand in enumerate(self.split_hands):
+                hand.calc_hand()
+                result = self.get_hand_result(hand)
+
+                if "Виграш" in result:
+                    self.balance += hand.bet * 2
+                elif "Нічия" in result:
+                    self.balance += hand.bet
+
+                # Оновлюємо відображення
+                self.update_display(show_dealer=True)
+                time.sleep(1)  # Невелика затримка між результатами
         else:
-            result, color = "Це нічия!", grey
-            self.push_bet()
-        
-        self.show_result(result, color)
+            # Звичайна гра без розділення
+            self.player.calc_hand()
+            result = self.get_hand_result(self.player)
+
+            if "Виграш" in result:
+                self.win_bet(self.current_bet)
+            elif "Нічия" in result:
+                self.push_bet()
+
+        self.show_result("Гра завершена!", grey)
+        self.update_display(show_dealer=True)
 
     def show_result(self, message, color):
         # Оновлюємо екран з показом всіх карт дилера
@@ -491,7 +568,7 @@ class Play:
 
 
         pygame.display.update()
-        time.sleep(2)  # Затримка для читання результату
+        time.sleep(10)  # Затримка для читання результату
 
         self.reset_game()
         self.update_display()
@@ -533,6 +610,8 @@ while running:
                     play_blackjack.double_down()
                 elif 750 <= mouse_pos[1] <= 800 and play_blackjack.game_state == "playing":
                     play_blackjack.split_hand()
+                elif 260 <= mouse_pos[1] <= 290 and play_blackjack.game_state == "playing":
+                    play_blackjack.change_hand()
                 elif 850 <= mouse_pos[1] <= 900:
                     play_blackjack.exit()
     
@@ -543,5 +622,6 @@ while running:
 
 pygame.quit()
 sys.exit()
+
 
 
