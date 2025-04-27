@@ -1,7 +1,6 @@
 import pygame
 import sys
 import time
-import random
 from constants import *
 from card_animation import *
 from blackjack_deck import *
@@ -48,24 +47,24 @@ class Play:
         self.flip_animation = None
 
     def draw_deck_stack(self, screen):
-        # Draw the base of the stack (bottom card)
+        # Намалювати колоду
         pygame.draw.rect(screen, (200, 200, 200), 
                         (DECK_X, DECK_Y, DECK_WIDTH, DECK_HEIGHT))
         pygame.draw.rect(screen, (0, 0, 0), 
                         (DECK_X, DECK_Y, DECK_WIDTH, DECK_HEIGHT), 2)
-        # Draw the top card (back side up)
+        # Намалювати верхню карту 
         back_img = pygame.image.load('img/back.png').convert_alpha()
         back_img = pygame.transform.scale(back_img, (DECK_WIDTH, DECK_HEIGHT))
         screen.blit(back_img, (DECK_X, DECK_Y))
-        # Display remaining cards count
+        # Лічильник карт, що залишилися
         remaining_text = f"{len(self.deck.cards)}"
         text_surf, text_rect = text_objects(remaining_text, pygame.font.SysFont(None, 30))
         text_rect.center = (DECK_X + DECK_WIDTH//2, DECK_Y + DECK_HEIGHT + 20)
         screen.blit(text_surf, text_rect)
-
+    #Функція перезапуску гри
     def reset_game(self):
         self.dealer_flip_animation = None
-        self.game_state = "waiting"  # waiting, playing, ended
+        self.game_state = "waiting"  
         if self.deck.remaining_cards() < 20:
             self.deck.reset()
         self.deck = Deck()
@@ -75,16 +74,15 @@ class Play:
         self.player_card_count = 0
         self.update_display()
         
-
+    # функція оновленя інтерфейсу
     def update_display(self, show_dealer=False):
         gameDisplay.fill(bg_colour)
         pygame.draw.rect(gameDisplay, grey, pygame.Rect(0, 0, 220, 850))
 
         # Додаємо відображення стеку карт
         self.draw_deck_stack(gameDisplay)
-
-
         game_texts("Рука дилера:", 500, 90)
+        #Рука дилера
         if show_dealer:
             for i, card in enumerate(self.dealer.card_img):
                 if i == 1 and self.dealer_flip_animation:  # Друга карта дилера
@@ -108,19 +106,19 @@ class Play:
                     gameDisplay.blit(card_img, (400, 150))
 
 
-        # Player's cards
+        # Рука гравця
         game_texts("Твоя рука:", 500, 400)
         for i, card in enumerate(self.player.card_img):
             card_img = pygame.image.load(f'img/{card}.png').convert()
             gameDisplay.blit(card_img, (300 + i * 100, 450))
         
-        # Player's total
+        # Рахунок гравця
         self.player.calc_hand()
         clear_text_area(500, 650)
         game_texts(f"Твій рахунок: {self.player.value}", 500, 650, 
                   green if self.player.value == 21 else red if self.player.value > 21 else black)
 
-        # Buttons
+        # Кнопки
         button("Роздати", 30, 100, 150, 50, light_slat, dark_slat)
         if self.game_state == "playing":
             button("Додати карту", 30, 200, 150, 50, light_slat, dark_slat)
@@ -128,7 +126,7 @@ class Play:
         button("Вихід", 30, 500, 150, 50, light_slat, dark_red)
 
         pygame.display.update()
-
+    #Функція роздачі
     def deal(self):
         if self.game_state == "playing":
             return
@@ -160,7 +158,7 @@ class Play:
         self.player_card_count = 2
         self.game_state = "playing"
 
-        # Set up flip animation for dealer's second card
+        # Анімація перевороту карти ділера
         if len(self.dealer.card_img) > 1:
             card_name = self.dealer.card_img[1]
             final_card_path = f'img/{card_name}.png'
@@ -169,7 +167,7 @@ class Play:
 
         self.check_blackjack()
         self.update_display()
-
+    # Функція перевірки на блекджек
     def check_blackjack(self):
         self.dealer.calc_hand()
         self.player.calc_hand()
@@ -215,7 +213,7 @@ class Play:
                 message, color = "У дилера блекджек!", red
             
             self.show_result(message, color)
-
+    #Функція для створеня анімації роздачі карти 
     def animate_card_draw(self, start_x, start_y, end_x, end_y, is_dealer):
         # Створюємо тимчасовий спрайт для анімації
         back_img = pygame.image.load('img/back.png').convert_alpha()
@@ -234,7 +232,7 @@ class Play:
             gameDisplay.blit(back_img, (x, y))
             pygame.display.update()
             pygame.time.delay(10)
-
+    # Функція добору карт
     def hit(self):
         if self.game_state != "playing":
             return
@@ -253,7 +251,7 @@ class Play:
         self.player.add_card(card)
         self.player_card_count += 1
         self.player.calc_hand()
-        
+        # Перевірка чи перебрав гравець
         if self.player.value > 21:
             if self.dealer_flip_animation:
                 pygame.mixer.Sound.play(flip_sound)
@@ -270,7 +268,7 @@ class Play:
             self.stand()
         else:
             self.update_display()
-
+    # Функція зупинки роздачі
     def stand(self):
         if self.game_state != "playing":
             return
@@ -289,7 +287,7 @@ class Play:
             pygame.time.delay(10)
             pygame.display.update()
         
-        # Dealer draws cards
+        # Анімація роздачі карт Дилеру
         self.dealer.calc_hand()
         i = 1
         while self.dealer.value < 17 and len(self.dealer.card_img) < 5:
@@ -301,7 +299,7 @@ class Play:
             i += 1
             pygame.time.delay(10)
         
-        # Determine result
+        # Кінцевий результат 
         self.dealer.calc_hand()
         self.player.calc_hand()
         
@@ -332,7 +330,7 @@ class Play:
         pygame.quit()
         sys.exit()
 
-# Main game loop
+# Головна петля
 play_blackjack = Play()
 running = True
 

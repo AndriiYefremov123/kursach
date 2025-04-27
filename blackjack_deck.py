@@ -10,7 +10,7 @@ class Deck:
         self.shuffle()
 
     def build(self):
-        #Створює нову колоду з 52 карт
+        #Створює нову колоду 
         self.cards = []
         for i in range(self.num_decks):
             self.cards.extend([(suit, value) for suit in SUITS for value in RANKS])
