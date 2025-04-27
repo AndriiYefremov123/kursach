@@ -43,8 +43,90 @@ def button(msg, x, y, w, h, ic, ac):
 class Play:
     def __init__(self):
         self.deck = Deck()
-        self.reset_game()
+        self.balance = 1000  # Початковий баланс гравця
+        self.current_bet = 0
+        self.insurance_bet = 0
+        self.split_hands = []  # Руки після спліту
+        self.active_hand_index = 0  # Яка рука зараз грає
         self.flip_animation = None
+        self.reset_game()
+
+    def place_bet(self, amount):
+        if amount <= self.balance:
+            self.current_bet += amount
+            self.balance -= amount
+            return True
+        return False
+
+    def win_bet(self, amount):
+        self.balance += amount * 2  # Виплата 1:1
+
+    def push_bet(self):
+        self.balance += self.current_bet  # Повернення ставки
+
+    def can_split(self):
+        if len(self.player.card_img) == 2 and self.player.card_img[0][1] == self.player.card_img[1][1] and len(self.split_hands) == 0:
+            return True
+        return False
+
+    def split_hand(self):
+        if not self.can_split():
+            return False
+
+        # Знімаємо додаткову ставку
+        self.balance -= self.current_bet
+
+        # Створюємо дві нові руки
+        self.split_hands = [
+            Hand(),
+            Hand()
+        ]
+
+        # Розподіляємо карти
+        card1 = self.player.cards.pop()
+        card2 = self.player.cards.pop()
+
+        self.split_hands[0].add_card(card1)
+        self.split_hands[1].add_card(card2)
+
+        # Додаємо нові карти до кожної руки
+        for hand in self.split_hands:
+            card = self.deck.deal()
+            hand.add_card(card)
+            hand.calc_hand()  # Обчислюємо значення руки
+    
+        self.active_hand_index = 0
+        return True
+    def can_double_down(self):
+        return len(self.player.card_img) == 2 and self.balance >= self.current_bet
+    
+    def double_down(self):
+        if self.can_double_down():
+            self.balance -= self.current_bet
+            self.current_bet *= 2
+            # Гравець отримує одну карту і автоматично стає
+            card = self.deck.deal()
+            self.player.add_card(card)
+            self.stand()
+
+    def can_insurance(self):
+        return (len(self.dealer.card_img) >= 1 and self.dealer.card_img[0][1] == 'A' and \
+               len(self.player.card_img) == 2 and self.insurance_bet == 0 and \
+           self.balance > 0) 
+    
+    def insurance(self, amount):
+        if not self.can_insurance():
+            raise ValueError("Insurance not available")
+        if amount > min(self.current_bet // 2, self.balance):
+            raise ValueError("Insurance amount too high")
+        self.insurance_bet = amount
+        self.balance -= amount
+    
+    def check_insurance(self):
+        if self.insurance_bet > 0:
+            if self.dealer.value == 21:  # Дилер має блекджек
+                self.balance += self.insurance_bet * 2
+            self.insurance_bet = 0
 
     def draw_deck_stack(self, screen):
         # Намалювати колоду
@@ -67,17 +149,18 @@ class Play:
         self.game_state = "waiting"  
         if self.deck.remaining_cards() < 20:
             self.deck.reset()
-        self.deck = Deck()
         self.dealer = Hand()
         self.player = Hand()
         self.deck.shuffle()
         self.player_card_count = 0
+        self.current_bet = 0
+        self.insurance_bet = 0
         self.update_display()
         
     # функція оновленя інтерфейсу
     def update_display(self, show_dealer=False):
         gameDisplay.fill(bg_colour)
-        pygame.draw.rect(gameDisplay, grey, pygame.Rect(0, 0, 220, 850))
+        pygame.draw.rect(gameDisplay, grey, pygame.Rect(0, 0, 280, 950))
 
         # Додаємо відображення стеку карт
         self.draw_deck_stack(gameDisplay)
@@ -104,13 +187,33 @@ class Play:
                 else:
                     card_img = pygame.image.load('img/back.png').convert_alpha()
                     gameDisplay.blit(card_img, (400, 150))
+        
+        if self.split_hands:
+            for i, hand in enumerate(self.split_hands):
+                y_offset = 450 + i * 200
+                game_texts(f"Split Hand {i+1}:", 500, y_offset - 30)
+                for j, card in enumerate(hand.card_img):
+                    card_img = pygame.image.load(f'img/{card}.png').convert()
+                    gameDisplay.blit(card_img, (300 + j * 100, y_offset))
 
+                # Відображаємо значення руки
+                hand.calc_hand()
+                game_texts(f"Value: {hand.value}", 500, y_offset + 70)
+        else:
+            # Звичайне відображення руки гравця
+            game_texts("Твоя рука:", 500, 400)
+            for i, card in enumerate(self.player.card_img):
+                card_img = pygame.image.load(f'img/{card}.png').convert()
+                gameDisplay.blit(card_img, (300 + i * 100, 450))
 
-        # Рука гравця
-        game_texts("Твоя рука:", 500, 400)
-        for i, card in enumerate(self.player.card_img):
-            card_img = pygame.image.load(f'img/{card}.png').convert()
-            gameDisplay.blit(card_img, (300 + i * 100, 450))
+        # Відображаємо баланс і ставку
+        game_texts(f"Balance: ${self.balance:>5}", 142, 20)
+        game_texts(f"Bet: ${self.current_bet:>5}", 142, 60)
+        if self.game_state == "waiting":
+            button("Bet 10", 40, 100, 150, 40, light_slat, dark_slat)
+            button("Bet 50", 40, 150, 150, 40, light_slat, dark_slat)
+            button("Bet 100", 40, 200, 150, 40, light_slat, dark_slat)
+
         
         # Рахунок гравця
         self.player.calc_hand()
@@ -119,18 +222,27 @@ class Play:
                   green if self.player.value == 21 else red if self.player.value > 21 else black)
 
         # Кнопки
-        button("Роздати", 30, 100, 150, 50, light_slat, dark_slat)
+        button("Роздати", 40, 350, 150, 50, light_slat, dark_slat)
         if self.game_state == "playing":
-            button("Додати карту", 30, 200, 150, 50, light_slat, dark_slat)
-            button("Зупинитися", 30, 300, 150, 50, light_slat, dark_slat)
-        button("Вихід", 30, 500, 150, 50, light_slat, dark_red)
+            button("Додати карту", 40, 450, 150, 50, light_slat, dark_slat)
+            button("Зупинитися", 40, 550, 150, 50, light_slat, dark_slat)
+            if self.can_double_down():
+                button("Double", 40, 650, 150, 40, light_slat, dark_slat)
+            
+            if self.can_split():
+                button("Split", 40, 750, 150, 40, light_slat, dark_slat)
+        button("Вихід", 40, 850, 150, 50, light_slat, dark_red)
 
         pygame.display.update()
     #Функція роздачі
     def deal(self):
         if self.game_state == "playing":
             return
+        
 
+        if self.balance <= 0:
+            self.show_result("Game Over! No funds", red)
+            return
         self.dealer.clear()
         self.player.clear()
         self.dealer_flip_animation = None
@@ -157,6 +269,11 @@ class Play:
 
         self.player_card_count = 2
         self.game_state = "playing"
+
+        if self.can_insurance():
+            self.show_insurance_option()
+    
+        self.update_display()
 
         # Анімація перевороту карти ділера
         if len(self.dealer.card_img) > 1:
@@ -214,6 +331,53 @@ class Play:
             
             self.show_result(message, color)
     #Функція для створеня анімації роздачі карти 
+
+    def show_insurance_option(self):
+        # Створюємо поверх для затемнення
+        overlay = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 128))  # Напівпрозорий чорний
+
+        # Відображаємо overlay
+        gameDisplay.blit(overlay, (0, 0))
+
+        # Створюємо вікно для пропозиції страхування
+        pygame.draw.rect(gameDisplay, (220, 220, 220), (300, 300, 450, 200))
+        pygame.draw.rect(gameDisplay, black, (300, 300, 450, 200), 2)
+
+        # Текст повідомлення
+        game_texts("Дилер має туза. Страхування?", 525, 330)
+        game_texts(f"Максимальна ставка: ${min(self.current_bet // 2, self.balance)}", 525, 360)
+
+        # Кнопки
+        button("Страхувати (1/2 ставки)", 350, 400, 200, 40, light_slat, dark_slat)
+        button("Продовжити", 550, 400, 200, 40, light_slat, dark_slat)
+
+        pygame.display.update()
+
+        # Обробка вибору гравця
+        waiting_for_input = True
+        while waiting_for_input:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mouse_pos = pygame.mouse.get_pos()
+
+                    # Кнопка "Страхувати"
+                    if 350 <= mouse_pos[0] <= 550 and 400 <= mouse_pos[1] <= 440:
+                        insurance_amount = min(self.current_bet // 2, self.balance)
+                        self.insurance(insurance_amount)
+                        waiting_for_input = False
+
+                    # Кнопка "Продовжити"
+                    elif 550 <= mouse_pos[0] <= 750 and 400 <= mouse_pos[1] <= 440:
+                        waiting_for_input = False
+
+        # Оновлюємо екран після вибору
+        self.update_display()
+
     def animate_card_draw(self, start_x, start_y, end_x, end_y, is_dealer):
         # Створюємо тимчасовий спрайт для анімації
         back_img = pygame.image.load('img/back.png').convert_alpha()
@@ -305,12 +469,15 @@ class Play:
         
         if self.dealer.value > 21:
             result, color = "Дилер перебрав! Ти переміг!", green
+            self.win_bet(self.current_bet)
         elif self.player.value > self.dealer.value:
             result, color = "Ти переміг!", green
+            self.win_bet(self.current_bet)
         elif self.player.value < self.dealer.value:
             result, color = "Дилер переміг!", red
         else:
             result, color = "Це нічия!", grey
+            self.push_bet()
         
         self.show_result(result, color)
 
@@ -324,6 +491,12 @@ class Play:
 
         pygame.display.update()
         time.sleep(2)  # Затримка для читання результату
+
+        self.reset_game()
+        self.update_display()
+
+
+
 
 
     def exit(self):
@@ -343,18 +516,31 @@ while running:
             mouse_pos = pygame.mouse.get_pos()
             
             if 30 <= mouse_pos[0] <= 180:
-                if 100 <= mouse_pos[1] <= 150:
+                if 100 <= mouse_pos[1] <= 140 and play_blackjack.game_state == "waiting":
+                    play_blackjack.place_bet(10)
+                elif 150 <= mouse_pos[1] <= 190 and play_blackjack.game_state == "waiting":
+                    play_blackjack.place_bet(50)
+                elif 200 <= mouse_pos[1] <= 250 and play_blackjack.game_state == "waiting":
+                    play_blackjack.place_bet(100)
+                elif 350 <= mouse_pos[1] <= 400:
                     play_blackjack.deal()
-                elif 200 <= mouse_pos[1] <= 250 and play_blackjack.game_state == "playing":
+                elif 450 <= mouse_pos[1] <= 500 and play_blackjack.game_state == "playing":
                     play_blackjack.hit()
-                elif 300 <= mouse_pos[1] <= 350 and play_blackjack.game_state == "playing":
+                elif 550 <= mouse_pos[1] <= 600 and play_blackjack.game_state == "playing":
                     play_blackjack.stand()
-                elif 500 <= mouse_pos[1] <= 550:
+                elif 650 <= mouse_pos[1] <= 700 and play_blackjack.game_state == "playing":
+                    play_blackjack.double_down()
+                elif 750 <= mouse_pos[1] <= 800 and play_blackjack.game_state == "playing":
+                    play_blackjack.split_hand()
+                elif 850 <= mouse_pos[1] <= 900:
                     play_blackjack.exit()
     
     # Оновлюємо екран
     play_blackjack.update_display(play_blackjack.game_state == "ended")  # Показуємо всі карти, якщо гра закінчена
     clock.tick(60)
 
+
 pygame.quit()
 sys.exit()
+
+

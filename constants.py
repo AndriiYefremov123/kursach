@@ -1,7 +1,7 @@
 import pygame
 
-screen_width = 1050
-screen_height = 850
+screen_width = 1150
+screen_height = 950
 
 
 bg_colour = (53, 101, 77)
