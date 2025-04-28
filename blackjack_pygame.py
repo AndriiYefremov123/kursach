@@ -287,14 +287,21 @@ class Play:
         button("Вихід", 40, 850, 150, 50, light_slat, dark_red)
 
         pygame.display.update()
+    def can_deal(self):
+    #Перевіряє, чи можна почати гру (чи є ставка і достатньо грошей)
+        return self.current_bet > 0
     #Функція роздачі
     def deal(self):
         if self.game_state == "playing":
             return
         
+        if not self.can_deal():
+            if self.current_bet == 0:
+                self.show_result("Будь ласка, зробіть ставку", red)
+                return
 
-        if self.balance <= 0:
-            self.show_result("Game Over! No funds", red)
+        if self.balance <= 0 and self.current_bet <=0:
+            self.show_result("Гра завершена! Закінчился кошти", red)
             return
         self.dealer.clear()
         self.player.clear()
@@ -344,8 +351,9 @@ class Play:
 
         player_blackjack = (len(self.player.cards) == 2 and self.player.value == 21)
         dealer_blackjack = (len(self.dealer.cards) == 2 and 
-                            self.dealer.cards[0][1] == 'A' and 
-                            self.dealer.cards[1][1] in ['10', 'J', 'Q', 'K'])
+                   ((self.dealer.cards[0][1] == 'A' and self.dealer.cards[1][1] in ['10', 'J', 'Q', 'K']) or
+                    (self.dealer.cards[1][1] == 'A' and self.dealer.cards[0][1] in ['10', 'J', 'Q', 'K'])))
+
 
         if player_blackjack or dealer_blackjack:
             if self.dealer_flip_animation:
@@ -534,6 +542,11 @@ class Play:
         if self.dealer_flip_animation:
             pygame.mixer.Sound.play(flip_sound)
             self.dealer_flip_animation.start_animation()
+            while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
+                self.dealer_flip_animation.update()
+                self.update_display()
+                pygame.time.delay(10)
+                pygame.display.update()
 
         # Оновлюємо екран під час анімації
         while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:

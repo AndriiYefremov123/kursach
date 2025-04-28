@@ -306,23 +306,23 @@ class Play:
         for i in range(2):
             # Анімація взяття карти для дилера
             if i == 0:
-                card = ('S', 'A')  # Перша карта дилера - Туз
+                card = ('S', '10')  # Перша карта дилера - Туз
             elif i == 1:
-                card = ('S', '10')  # Друга карта дилера - 10
+                card = ('S', 'A')  # Друга карта дилера - 10
             else:
                 card = self.deck.deal()
             self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 150, is_dealer=True)
             pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(card)
-        
+
             # Анімація взяття карти для гравця
             if i == 0:
-                player_card = ('H', 'A')  # Перша карта гравця - Туз
+                player_card = ('H', '10')  # Перша карта гравця - Туз
             elif i == 1:
-                player_card = ('H', '10')  # Друга карта гравця - 10
+                player_card = ('H', 'A')  # Друга карта гравця - 10
             else:
                 player_card = self.deck.deal()
-            
+
             self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 450, is_dealer=False)
             pygame.mixer.Sound.play(draw_sound)
             self.player.add_card(player_card)
@@ -351,8 +351,9 @@ class Play:
 
         player_blackjack = (len(self.player.cards) == 2 and self.player.value == 21)
         dealer_blackjack = (len(self.dealer.cards) == 2 and 
-                            self.dealer.cards[0][1] == 'A' and 
-                            self.dealer.cards[1][1] in ['10', 'J', 'Q', 'K'])
+                   ((self.dealer.cards[0][1] == 'A' and self.dealer.cards[1][1] in ['10', 'J', 'Q', 'K']) or
+                    (self.dealer.cards[1][1] == 'A' and self.dealer.cards[0][1] in ['10', 'J', 'Q', 'K'])))
+
 
         if player_blackjack or dealer_blackjack:
             if self.dealer_flip_animation:
@@ -541,6 +542,11 @@ class Play:
         if self.dealer_flip_animation:
             pygame.mixer.Sound.play(flip_sound)
             self.dealer_flip_animation.start_animation()
+            while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
+                self.dealer_flip_animation.update()
+                self.update_display()
+                pygame.time.delay(10)
+                pygame.display.update()
 
         # Оновлюємо екран під час анімації
         while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
