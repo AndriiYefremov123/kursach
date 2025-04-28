@@ -1,6 +1,6 @@
 import pygame
 
-screen_width = 1150
+screen_width = 1450
 screen_height = 950
 
 
@@ -25,7 +25,7 @@ CARD_SIZE = (72, 96)
 CARD_CENTER = (36, 48)
 CARD_BACK_SIZE = (72, 96)
 CARD_BACK_CENTER = (36, 48)
-DECK_X = 800  # X позиція колоди
+DECK_X = 1100  # X позиція колоди
 DECK_Y = 50  # Y позиція колоди
 DECK_WIDTH = 100  # ширина
 DECK_HEIGHT = 150 # висота

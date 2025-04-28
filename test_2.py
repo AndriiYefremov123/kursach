@@ -98,16 +98,54 @@ class Play:
 
         return True
     def can_double_down(self):
-        return len(self.player.card_img) == 2 and self.balance >= self.current_bet
+        if self.split_hands:
+            # Для розділених рук перевіряємо поточну активну руку
+            current_hand = self.split_hands[self.active_hand_index]
+            return len(current_hand.card_img) == 2 and self.balance >= current_hand.bet
+        else:
+         # Для звичайної гри перевіряємо основну руку
+            return len(self.player.card_img) == 2 and self.balance >= self.current_bet
     
     def double_down(self):
-        if self.can_double_down():
+        if not self.can_double_down():
+            return
+
+        if self.split_hands:
+            # Для розділених рук
+            current_hand = self.split_hands[self.active_hand_index]
+            self.balance -= current_hand.bet  # Віднімаємо ставку
+            current_hand.bet *= 2  # Подвоюємо ставку для поточної руки
+
+            # Додаємо одну карту
+            card = self.deck.deal()
+            current_hand.add_card(card)
+            current_hand.calc_hand()
+
+            # Анімація взяття карти
+            i = len(current_hand.card_img) - 1  # Індекс нової карти
+            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450 + self.active_hand_index * 250, is_dealer=False)
+            pygame.mixer.Sound.play(draw_sound)
+
+            # Перевіряємо, чи потрібно переходити до наступної руки
+            if self.active_hand_index < len(self.split_hands) - 1:
+                self.active_hand_index += 1
+            else:
+                self.stand()
+        else:
+            # Звичайна логіка без розділення
             self.balance -= self.current_bet
             self.current_bet *= 2
-            # Гравець отримує одну карту і автоматично стає
             card = self.deck.deal()
             self.player.add_card(card)
+
+            # Анімація взяття карти
+            i = len(self.player.card_img) - 1
+            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
+            pygame.mixer.Sound.play(draw_sound)
+
             self.stand()
+
+        self.update_display()
 
     def can_insurance(self):
         return (len(self.dealer.card_img) >= 1 and self.dealer.card_img[0][1] == 'A' and \
@@ -162,25 +200,25 @@ class Play:
     # функція оновленя інтерфейсу
     def update_display(self, show_dealer=False):
         gameDisplay.fill(bg_colour)
-        pygame.draw.rect(gameDisplay, grey, pygame.Rect(0, 0, 280, 950))
+        pygame.draw.rect(gameDisplay, grey, pygame.Rect(0, 0, 285, 950))
 
         # Додаємо відображення стеку карт
         self.draw_deck_stack(gameDisplay)
-        game_texts("Рука дилера:", 500, 90)
+        game_texts("Рука дилера:", 800, 90)
         #Рука дилера
         if show_dealer:
             for i, card in enumerate(self.dealer.card_img):
                 if i == 1 and self.dealer_flip_animation:  # Друга карта дилера
                     self.dealer_flip_animation.draw(gameDisplay)
-                    game_texts(f"Рахунок дилера: {self.dealer.value}", 500, 120)
+                    game_texts(f"Рахунок дилера: {self.dealer.value}", 800, 120)
                 else:
                     card_img = pygame.image.load(f'img/{card}.png').convert_alpha()
-                    gameDisplay.blit(card_img, (300 + i * 100, 150))
+                    gameDisplay.blit(card_img, (600 + i * 100, 150))
         else:
             # Перша карта дилера - лицевою стороною
             if len(self.dealer.card_img) > 0:
                 card_img = pygame.image.load(f'img/{self.dealer.card_img[0]}.png').convert_alpha()
-                gameDisplay.blit(card_img, (300, 150))
+                gameDisplay.blit(card_img, (600, 150))
 
             # Друга карта дилера - анімація 
             if len(self.dealer.card_img) > 1:
@@ -188,7 +226,7 @@ class Play:
                     self.dealer_flip_animation.draw(gameDisplay)
                 else:
                     card_img = pygame.image.load('img/back.png').convert_alpha()
-                    gameDisplay.blit(card_img, (400, 150))
+                    gameDisplay.blit(card_img, (700, 150))
         
         if self.split_hands:
             for i, hand in enumerate(self.split_hands):
@@ -201,25 +239,26 @@ class Play:
                     status_text = ""
             
                 # Відображаємо руку зі ставкою та результатом
-                game_texts(f"Рука {i+1} (${hand.bet}){status_text}:", 500, y_offset - 30)
+                game_texts(f"Рука {i+1} (${hand.bet}){status_text}:", 800, y_offset - 30)
                 for j, card in enumerate(hand.card_img):
                     card_img = pygame.image.load(f'img/{card}.png').convert()
-                    gameDisplay.blit(card_img, (300 + j * 100, y_offset))
+                    gameDisplay.blit(card_img, (600 + j * 100, y_offset))
                 if i == self.active_hand_index and self.game_state == "playing":
-                    pygame.draw.rect(gameDisplay, (255, 255, 0), (290 , y_offset-5, 220 + j * 100, 160), 2)
+                    pygame.draw.rect(gameDisplay, (255, 255, 0), (590 , y_offset-5, 120 + j * 100, 160), 2)
                 # Відображаємо значення руки
                 hand.calc_hand()
-                game_texts(f"Твій рахунок: {hand.value}", 500, y_offset + 170)
+                game_texts(f"Твій рахунок: {hand.value}",800, y_offset + 170,
+                           green if self.player.value == 21 else red if self.player.value > 21 else black)
         else:
             # Звичайне відображення руки гравця
-            game_texts("Твоя рука:", 500, 400)
+            game_texts("Твоя рука:", 800, 400)
             for i, card in enumerate(self.player.card_img):
                 card_img = pygame.image.load(f'img/{card}.png').convert()
-                gameDisplay.blit(card_img, (300 + i * 100, 450))
+                gameDisplay.blit(card_img, (600 + i * 100, 450))
                         # Рахунок гравця
                 self.player.calc_hand()
-                clear_text_area(500, 650)
-                game_texts(f"Твій рахунок: {self.player.value}", 500, 650, 
+                clear_text_area(800, 650)
+                game_texts(f"Твій рахунок: {self.player.value}", 800, 650, 
                           green if self.player.value == 21 else red if self.player.value > 21 else black)
 
         # Відображаємо баланс і ставку
@@ -269,7 +308,7 @@ class Play:
             card = self.deck.deal()
             if card is None:
                 return
-            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 150, is_dealer=True)
+            self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 150, is_dealer=True)
             pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(card)
 
@@ -277,9 +316,9 @@ class Play:
             card = self.deck.deal()
             if card is None:
                 return
-            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
+            self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 450, is_dealer=False)
             pygame.mixer.Sound.play(draw_sound)
-            self.player.add_card(('S','3'))
+            self.player.add_card(('H', 'A'))
 
         self.player_card_count = 2
         self.game_state = "playing"
@@ -294,7 +333,7 @@ class Play:
             card_name = self.dealer.card_img[1]
             final_card_path = f'img/{card_name}.png'
 
-            self.dealer_flip_animation = CardFlipAnimation(x=400, y=150, final_card_image_path=final_card_path, scale=1)
+            self.dealer_flip_animation = CardFlipAnimation(x=700, y=150, final_card_image_path=final_card_path, scale=1)
 
         self.check_blackjack()
         self.update_display()
@@ -302,8 +341,13 @@ class Play:
     def check_blackjack(self):
         self.dealer.calc_hand()
         self.player.calc_hand()
-        
-        if self.player.value == 21 or self.dealer.value == 21:
+
+        player_blackjack = (len(self.player.cards) == 2 and self.player.value == 21)
+        dealer_blackjack = (len(self.dealer.cards) == 2 and 
+                            self.dealer.cards[0][1] == 'A' and 
+                            self.dealer.cards[1][1] in ['10', 'J', 'Q', 'K'])
+
+        if player_blackjack or dealer_blackjack:
             if self.dealer_flip_animation:
                 self.dealer_flip_animation.start_animation()
             while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
@@ -311,40 +355,20 @@ class Play:
                 self.update_display()
                 pygame.time.delay(10)
                 pygame.display.update()
+
             self.game_state = "ended"
-            if self.player.value == 21 and self.dealer.value == 21:
-                if self.dealer_flip_animation:
-                    pygame.mixer.Sound.play(flip_sound)
-                    self.dealer_flip_animation.start_animation()
-                while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
-                    self.dealer_flip_animation.update()
-                    self.update_display()
-                    pygame.time.delay(10)
-                    pygame.display.update()
+
+            if player_blackjack and dealer_blackjack:
                 message, color = "Блекджек у обох!", grey
-            elif self.player.value == 21:
-                if self.dealer_flip_animation:
-                    pygame.mixer.Sound.play(flip_sound)
-                    self.dealer_flip_animation.start_animation()
-                while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
-                    self.dealer_flip_animation.update()
-                    self.update_display()
-                    pygame.time.delay(10)
-                    pygame.display.update()
+                self.push_bet()
+            elif player_blackjack:
                 message, color = "У тебе блекджек!", green
+                self.balance += int(self.current_bet * 2.5)  # Виплата 3:2 за блекджек
             else:
-                if self.dealer_flip_animation:
-                    pygame.mixer.Sound.play(flip_sound)
-                    self.dealer_flip_animation.start_animation()
-                while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
-                    self.dealer_flip_animation.update()
-                    self.update_display()
-                    pygame.time.delay(10)
-                    pygame.display.update()
                 message, color = "У дилера блекджек!", red
-            
+
             self.show_result(message, color)
-    #Функція для створеня анімації роздачі карти 
+
 
     def show_insurance_option(self):
         # Створюємо поверх для затемнення
@@ -429,7 +453,7 @@ class Play:
 
             # Анімація взяття карти
             i = len(current_hand.card_img)
-            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450 + self.active_hand_index * 250, is_dealer=False)
+            self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 450 + self.active_hand_index * 250, is_dealer=False)
             pygame.mixer.Sound.play(draw_sound)
 
             # Додаємо карту до поточної руки
@@ -460,7 +484,7 @@ class Play:
                 return
 
             i = len(self.player.card_img)
-            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 450, is_dealer=False)
+            self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 450, is_dealer=False)
             pygame.mixer.Sound.play(draw_sound)
             self.player.add_card(card)
             self.player.calc_hand()
@@ -522,7 +546,7 @@ class Play:
         self.dealer.calc_hand()
         i = len(self.dealer.card_img)
         while self.dealer.value < 17 :
-            self.animate_card_draw(DECK_X, DECK_Y, 300 + i * 100, 150, is_dealer=True)
+            self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 150, is_dealer=True)
             pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(self.deck.deal())
             self.dealer.calc_hand()
@@ -564,7 +588,7 @@ class Play:
         self.update_display(show_dealer=True)
 
         # Відображаємо повідомлення про результат
-        game_finish(message, 605, 325, color)
+        game_finish(message, 905, 325, color)
 
 
         pygame.display.update()
