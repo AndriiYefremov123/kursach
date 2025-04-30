@@ -191,7 +191,6 @@ class Play:
         self.player = Hand()
         self.split_hands = []        # Очистити розділені руки
         self.active_hand_index = 0   # Скинути індекс активної руки
-        self.deck.shuffle()
         self.player_card_count = 0
         self.current_bet = 0
         self.insurance_bet = 0
