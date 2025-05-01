@@ -341,6 +341,9 @@ class Play:
         self.player_card_count = 2
         self.game_state = "playing"
 
+        self.update_display()
+        pygame.time.delay(10)
+        
         if self.can_insurance():
             self.show_insurance_option()
     
@@ -368,6 +371,7 @@ class Play:
 
         if player_blackjack or dealer_blackjack:
             if self.dealer_flip_animation:
+                pygame.mixer.Sound.play(flip_sound)
                 self.dealer_flip_animation.start_animation()
             while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
                 self.dealer_flip_animation.update()
@@ -509,9 +513,19 @@ class Play:
             self.player.calc_hand()
 
             if self.player.value > 21:
+                if self.dealer_flip_animation:
+                    pygame.mixer.Sound.play(flip_sound)
+                    self.dealer_flip_animation.start_animation()
+                while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
+                    self.dealer_flip_animation.update()
+                    self.update_display()
+                    pygame.time.delay(10)
+                pygame.display.update()
                 self.game_state = "ended"
                 self.show_result("Ти перебрав!", red)
+                
             elif self.player.value == 21:
+                
                 self.stand()
 
         self.update_display()
@@ -578,7 +592,6 @@ class Play:
             pygame.time.delay(10)
 
         # Визначаємо результати
-        dealer_value = self.dealer.value
 
         if self.split_hands:
             # Обробка розділених рук
@@ -597,14 +610,22 @@ class Play:
         else:
             # Звичайна гра без розділення
             self.player.calc_hand()
-            result = self.get_hand_result(self.player)
 
-            if "Виграш" in result:
+            if self.dealer.value > 21:
                 self.win_bet(self.current_bet)
-            elif "Нічия" in result:
+                self.show_result("Дилер перебрав, ти переміг!", green)
+            elif self.dealer.value == self.player.value:
                 self.push_bet()
+                self.show_result("Нічия!", grey)
+            elif self.player.value > self.dealer.value:
+                self.win_bet(self.current_bet)
+                self.show_result("Ти переміг!", green)
+            else:
+                self.show_result("Ти програв", red)
 
-        self.show_result("Гра завершена!", grey)
+
+
+        
         self.update_display(show_dealer=True)
 
     def show_result(self, message, color):

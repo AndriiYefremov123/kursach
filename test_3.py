@@ -317,7 +317,7 @@ class Play:
         for i in range(2):
             # Анімація взяття карти для дилера
             if i == 0:
-                card = ('S', '5')  # Перша карта дилера - Туз
+                card = ('S', 'A')  # Перша карта дилера - Туз
             elif i == 1:
                 card = ('S', '5')  # Друга карта дилера - 10
             else:
@@ -340,7 +340,9 @@ class Play:
 
         self.player_card_count = 2
         self.game_state = "playing"
-
+        
+        self.update_display()
+        pygame.time.delay(10)
         if self.can_insurance():
             self.show_insurance_option()
     
