@@ -648,44 +648,45 @@ class Play:
         sys.exit()
 
 # Головна петля
-play_blackjack = Play()
-running = True
-
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse_pos = pygame.mouse.get_pos()
-            
-            if 30 <= mouse_pos[0] <= 180:
-                if 100 <= mouse_pos[1] <= 140 and play_blackjack.game_state == "waiting":
-                    play_blackjack.place_bet(10)
-                elif 150 <= mouse_pos[1] <= 190 and play_blackjack.game_state == "waiting":
-                    play_blackjack.place_bet(50)
-                elif 200 <= mouse_pos[1] <= 250 and play_blackjack.game_state == "waiting":
-                    play_blackjack.place_bet(100)
-                elif 350 <= mouse_pos[1] <= 400:
-                    play_blackjack.deal()
-                elif 450 <= mouse_pos[1] <= 500 and play_blackjack.game_state == "playing":
-                    play_blackjack.hit()
-                elif 550 <= mouse_pos[1] <= 600 and play_blackjack.game_state == "playing":
-                    play_blackjack.stand()
-                elif 650 <= mouse_pos[1] <= 700 and play_blackjack.game_state == "playing":
-                    play_blackjack.double_down()
-                elif 750 <= mouse_pos[1] <= 800 and play_blackjack.game_state == "playing":
-                    play_blackjack.split_hand()
-                elif 850 <= mouse_pos[1] <= 900:
-                    play_blackjack.exit()
+if __name__ == '__main__':
+    play_blackjack = Play()
+    running = True
     
-    # Оновлюємо екран
-    play_blackjack.update_display(play_blackjack.game_state == "ended")  # Показуємо всі карти, якщо гра закінчена
-    clock.tick(60)
-
-
-pygame.quit()
-sys.exit()
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = pygame.mouse.get_pos()
+                
+                if 30 <= mouse_pos[0] <= 180:
+                    if 100 <= mouse_pos[1] <= 140 and play_blackjack.game_state == "waiting":
+                        play_blackjack.place_bet(10)
+                    elif 150 <= mouse_pos[1] <= 190 and play_blackjack.game_state == "waiting":
+                        play_blackjack.place_bet(50)
+                    elif 200 <= mouse_pos[1] <= 250 and play_blackjack.game_state == "waiting":
+                        play_blackjack.place_bet(100)
+                    elif 350 <= mouse_pos[1] <= 400:
+                        play_blackjack.deal()
+                    elif 450 <= mouse_pos[1] <= 500 and play_blackjack.game_state == "playing":
+                        play_blackjack.hit()
+                    elif 550 <= mouse_pos[1] <= 600 and play_blackjack.game_state == "playing":
+                        play_blackjack.stand()
+                    elif 650 <= mouse_pos[1] <= 700 and play_blackjack.game_state == "playing":
+                        play_blackjack.double_down()
+                    elif 750 <= mouse_pos[1] <= 800 and play_blackjack.game_state == "playing":
+                        play_blackjack.split_hand()
+                    elif 850 <= mouse_pos[1] <= 900:
+                        play_blackjack.exit()
+        
+        # Оновлюємо екран
+        play_blackjack.update_display(play_blackjack.game_state == "ended")  # Показуємо всі карти, якщо гра закінчена
+        clock.tick(60)
+    
+    
+    pygame.quit()
+    sys.exit()
 
 
 
