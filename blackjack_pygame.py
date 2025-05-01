@@ -96,6 +96,21 @@ class Play:
         self.balance -= original_bet
         self.active_hand_index = 0
 
+                # Віднімаємо ще одну ставку з балансу
+        self.balance -= original_bet
+        self.active_hand_index = 0
+        
+        while self.active_hand_index < len(self.split_hands):
+            current_hand = self.split_hands[self.active_hand_index]
+            if current_hand.value == 21:
+                self.active_hand_index += 1
+            else:
+                break
+
+    # Якщо всі руки мають 21 — одразу stand()
+        if self.active_hand_index >= len(self.split_hands):
+            self.stand()
+
         return True
     def can_double_down(self):
         if self.split_hands:

@@ -89,12 +89,23 @@ class Play:
         # Додаємо по одній новій карті кожній руці
         for hand in self.split_hands:
             card = self.deck.deal()
-            hand.add_card(card)
+            hand.add_card(('H', '10'))
             hand.calc_hand()
-
+            
+        
         # Віднімаємо ще одну ставку з балансу
         self.balance -= original_bet
         self.active_hand_index = 0
+        while self.active_hand_index < len(self.split_hands):
+            current_hand = self.split_hands[self.active_hand_index]
+            if current_hand.value == 21:
+                self.active_hand_index += 1
+            else:
+                break
+
+    # Якщо всі руки мають 21 — одразу stand()
+        if self.active_hand_index >= len(self.split_hands):
+            self.stand()
 
         return True
     def can_double_down(self):
@@ -306,9 +317,9 @@ class Play:
         for i in range(2):
             # Анімація взяття карти для дилера
             if i == 0:
-                card = ('S', '10')  # Перша карта дилера - Туз
+                card = ('S', '5')  # Перша карта дилера - Туз
             elif i == 1:
-                card = ('S', 'A')  # Друга карта дилера - 10
+                card = ('S', '5')  # Друга карта дилера - 10
             else:
                 card = self.deck.deal()
             self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 150, is_dealer=True)
@@ -317,7 +328,7 @@ class Play:
 
             # Анімація взяття карти для гравця
             if i == 0:
-                player_card = ('H', '10')  # Перша карта гравця - Туз
+                player_card = ('H', 'A')  # Перша карта гравця - Туз
             elif i == 1:
                 player_card = ('H', 'A')  # Друга карта гравця - 10
             else:
@@ -605,10 +616,9 @@ class Play:
 
 
         pygame.display.update()
-        time.sleep(10)  # Затримка для читання результату
+        time.sleep(3)  # Затримка для читання результату
 
         self.reset_game()
-        self.update_display()
 
 
 
