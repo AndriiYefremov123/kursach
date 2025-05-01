@@ -96,9 +96,6 @@ class Play:
         self.balance -= original_bet
         self.active_hand_index = 0
 
-                # Віднімаємо ще одну ставку з балансу
-        self.balance -= original_bet
-        self.active_hand_index = 0
         
         while self.active_hand_index < len(self.split_hands):
             current_hand = self.split_hands[self.active_hand_index]
