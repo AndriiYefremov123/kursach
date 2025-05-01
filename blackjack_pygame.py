@@ -530,9 +530,6 @@ class Play:
 
         self.update_display()
 
-    def change_hand(self):
-
-        self.active_hand_index += 1
 
     def get_hand_result(self, hand):
         hand.calc_hand()
@@ -679,8 +676,6 @@ while running:
                     play_blackjack.double_down()
                 elif 750 <= mouse_pos[1] <= 800 and play_blackjack.game_state == "playing":
                     play_blackjack.split_hand()
-                elif 260 <= mouse_pos[1] <= 290 and play_blackjack.game_state == "playing":
-                    play_blackjack.change_hand()
                 elif 850 <= mouse_pos[1] <= 900:
                     play_blackjack.exit()
     

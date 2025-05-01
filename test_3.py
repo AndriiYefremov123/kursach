@@ -89,7 +89,7 @@ class Play:
         # Додаємо по одній новій карті кожній руці
         for hand in self.split_hands:
             card = self.deck.deal()
-            hand.add_card(('H', '10'))
+            hand.add_card(('H', '9'))
             hand.calc_hand()
             
         
@@ -293,8 +293,6 @@ class Play:
             
             if self.can_split():
                 button("Розділити", 40, 750, 150, 40, light_slat, dark_slat)
-            if self.split_hands:
-                button("Переключити руку", 40, 260, 200, 30, light_slat, dark_slat)
         button("Вихід", 40, 850, 150, 50, light_slat, dark_red)
 
         pygame.display.update()
@@ -518,9 +516,6 @@ class Play:
 
         self.update_display()
 
-    def change_hand(self):
-
-        self.active_hand_index += 1
 
     def get_hand_result(self, hand):
         hand.calc_hand()
@@ -573,8 +568,10 @@ class Play:
         i = len(self.dealer.card_img)
         while self.dealer.value < 17 :
             self.animate_card_draw(DECK_X, DECK_Y, 600 + i * 100, 150, is_dealer=True)
+            
             pygame.mixer.Sound.play(draw_sound)
             self.dealer.add_card(self.deck.deal())
+            self.update_display()
             self.dealer.calc_hand()
             i += 1
             pygame.time.delay(10)
@@ -659,8 +656,7 @@ while running:
                     play_blackjack.double_down()
                 elif 750 <= mouse_pos[1] <= 800 and play_blackjack.game_state == "playing":
                     play_blackjack.split_hand()
-                elif 260 <= mouse_pos[1] <= 290 and play_blackjack.game_state == "playing":
-                    play_blackjack.change_hand()
+
                 elif 850 <= mouse_pos[1] <= 900:
                     play_blackjack.exit()
     
