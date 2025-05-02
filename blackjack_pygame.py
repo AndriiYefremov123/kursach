@@ -293,8 +293,6 @@ class Play:
             
             if self.can_split():
                 button("Розділити", 40, 750, 150, 40, light_slat, dark_slat)
-            if self.split_hands:
-                button("Переключити руку", 40, 260, 200, 30, light_slat, dark_slat)
         button("Вихід", 40, 850, 150, 50, light_slat, dark_red)
 
         pygame.display.update()
@@ -552,11 +550,15 @@ class Play:
             return
 
         if self.split_hands:
-            # Для розділених рук перевіряємо, чи є ще руки
+            # Перехід до наступної руки
             if self.active_hand_index < len(self.split_hands) - 1:
                 self.active_hand_index += 1
-                return
 
+                # Якщо наступна рука має 21 — автоматично завершити гру
+                current_hand = self.split_hands[self.active_hand_index]
+                if current_hand.value == 21:
+                    self.stand()  # рекурсивно викликаємо stand() ще раз
+                return
         # Якщо всі руки завершено або це звичайна гра
         self.game_state = "ended"
 
@@ -564,18 +566,13 @@ class Play:
         if self.dealer_flip_animation:
             pygame.mixer.Sound.play(flip_sound)
             self.dealer_flip_animation.start_animation()
+
+            # Оновлюємо екран під час анімації
             while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
                 self.dealer_flip_animation.update()
                 self.update_display()
                 pygame.time.delay(10)
                 pygame.display.update()
-
-        # Оновлюємо екран під час анімації
-        while self.dealer_flip_animation and self.dealer_flip_animation.is_animating:
-            self.dealer_flip_animation.update()
-            self.update_display()
-            pygame.time.delay(10)
-            pygame.display.update()
 
         # Дилер добирає карти
         self.dealer.calc_hand()
@@ -604,6 +601,7 @@ class Play:
                 # Оновлюємо відображення
                 self.update_display(show_dealer=True)
                 time.sleep(1)  # Невелика затримка між результатами
+            self.show_result("Гра завершена!", grey)
         else:
             # Звичайна гра без розділення
             self.player.calc_hand()
@@ -611,14 +609,18 @@ class Play:
             if self.dealer.value > 21:
                 self.win_bet(self.current_bet)
                 self.show_result("Дилер перебрав, ти переміг!", green)
+                self.update_display(show_dealer=True)
             elif self.dealer.value == self.player.value:
                 self.push_bet()
                 self.show_result("Нічия!", grey)
+                self.update_display(show_dealer=True)
             elif self.player.value > self.dealer.value:
                 self.win_bet(self.current_bet)
                 self.show_result("Ти переміг!", green)
+                self.update_display(show_dealer=True)
             else:
                 self.show_result("Ти програв", red)
+                self.update_display(show_dealer=True)
 
 
 
@@ -634,7 +636,7 @@ class Play:
 
 
         pygame.display.update()
-        time.sleep(6)  # Затримка для читання результату
+        time.sleep(3)  # Затримка для читання результату
 
         self.reset_game()
         self.update_display()
@@ -651,7 +653,7 @@ class Play:
 if __name__ == '__main__':
     play_blackjack = Play()
     running = True
-    
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -683,8 +685,8 @@ if __name__ == '__main__':
         # Оновлюємо екран
         play_blackjack.update_display(play_blackjack.game_state == "ended")  # Показуємо всі карти, якщо гра закінчена
         clock.tick(60)
-    
-    
+        
+        
     pygame.quit()
     sys.exit()
 

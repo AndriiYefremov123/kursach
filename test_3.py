@@ -87,9 +87,11 @@ class Play:
         self.split_hands[1].add_card(card2)
 
         # Додаємо по одній новій карті кожній руці
-        for hand in self.split_hands:
-            card = self.deck.deal()
-            hand.add_card(('H', '9'))
+        for i, hand in enumerate(self.split_hands):
+            if i == 0:
+                hand.add_card(('H', '2'))  # Перша рука — дев'ятка
+            else:
+                hand.add_card(('H', '10'))  # Друга рука — десятка
             hand.calc_hand()
             
         
@@ -538,11 +540,15 @@ class Play:
             return
 
         if self.split_hands:
-            # Для розділених рук перевіряємо, чи є ще руки
+            # Перехід до наступної руки
             if self.active_hand_index < len(self.split_hands) - 1:
                 self.active_hand_index += 1
-                return
 
+                # Якщо наступна рука має 21 — автоматично завершити гру
+                current_hand = self.split_hands[self.active_hand_index]
+                if current_hand.value == 21:
+                    self.stand()  # рекурсивно викликаємо stand() ще раз
+                return
         # Якщо всі руки завершено або це звичайна гра
         self.game_state = "ended"
 
